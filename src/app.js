@@ -1,67 +1,36 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
+const express = require("express");
 const { port } = require('./config/env');
-
-// Importar rutas
-const authRoutes = require('./routes/auth');
-const exerciseRoutes = require('./routes/exercises');
-const workoutRoutes = require('./routes/workouts');
-const scheduleRoutes = require('./routes/schedules');
-const reportRoutes = require('./routes/reports');
 
 const app = express();
 
-// Middlewares de seguridad
-app.use(helmet());
-app.use(cors());
-
-// Middlewares para parsing JSON
-app.use(express.json({ limit: '10mb' }));
+// Middleware básico
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Rutas base
-app.get('/', (req, res) => {
-  res.json({
-    message: 'Workout Tracker API',
-    version: '1.0.0',
-    endpoints: {
-      auth: '/v1/auth',
-      exercises: '/v1/exercises',
-      workouts: '/v1/workouts',
-      schedules: '/v1/schedules',
-      reports: '/v1/reports'
-    }
-  });
+// Ruta de prueba
+app.get("/", (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: "Hola mi server en Express",
+        version: "1.0.0",
+        timestamp: new Date().toISOString()
+    });
 });
 
-// Registrar rutas
-app.use('/v1/auth', authRoutes);
-app.use('/v1/exercises', exerciseRoutes);
-app.use('/v1/workouts', workoutRoutes);
-app.use('/v1/schedules', scheduleRoutes);
-app.use('/v1/reports', reportRoutes);
-
-// Manejo de errores 404
-app.use('*', (req, res) => {
-  res.status(404).json({
-    success: false,
-    error: 'Endpoint no encontrado'
-  });
-});
-
-// Middleware de errores global
-app.use((error, req, res, next) => {
-  console.error('Error:', error);
-  res.status(500).json({
-    success: false,
-    error: 'Error interno del servidor'
-  });
+// Middleware 404 al final, sin patrón específico
+app.use((req, res, next) => {
+    res.status(404).json({
+        success: false,
+        message: "Ruta no encontrada",
+        path: req.originalUrl,
+        method: req.method
+    });
 });
 
 // Iniciar servidor
 app.listen(port, () => {
-  console.log(`Servidor corriendo en http://localhost:${port}`);
+    console.log(`🚀 Servidor corriendo en http://localhost:${port}`);
+    console.log(`📊 Ambiente: ${process.env.NODE_ENV}`);
 });
 
 module.exports = app;
