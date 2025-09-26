@@ -7,46 +7,60 @@ const usersRoutes = require('./routes/users');
 
 // Importar middleware
 const { requestLogger } = require('./middleware/auth');
+const { securityHeaders, validateHeaders, authHeaders } = require('./middleware/security');
 
 const app = express();
 
+// Middleware de seguridad
+app.use(securityHeaders);
+app.use(validateHeaders);
+app.use(authHeaders);
+
 // Middleware básico
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Middleware de log
 app.use(requestLogger);
 
-// Configurar headers de respuesta
-app.use((req, res, next) => {
-    res.set({
-        'X-Powered-By': 'Express',
-        'X-API-Version': '1.0.0',
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    });
-    
-    // Manejar preflight requests
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-    
-    next();
-});
-
-// Ruta de prueba (DEBE IR ANTES del middleware 404)
+// Ruta de prueba con información de headers (DEBE IR PRIMERO)
 app.get("/", (req, res) => {
+    const requestHeaders = {
+        'user-agent': req.get('User-Agent'),
+        'accept': req.get('Accept'),
+        'content-type': req.get('Content-Type'),
+        'x-api-key': req.get('X-API-Key'),
+        'x-client-version': req.get('X-Client-Version')
+    };
+    
     res.status(200).json({
         success: true,
         message: "¡Workout Tracker API está funcionando!",
         version: "1.0.0",
         timestamp: new Date().toISOString(),
+        yourIP: req.ip,
+        headers: requestHeaders,
         endpoints: {
             exercises: "/exercises",
             users: "/users"
         }
+    });
+});
+
+// Endpoint para ver headers de la request
+app.get("/headers", (req, res) => {
+    const allHeaders = {};
+    
+    Object.keys(req.headers).forEach(key => {
+        allHeaders[key] = req.headers[key];
+    });
+    
+    res.status(200).json({
+        success: true,
+        yourIP: req.ip,
+        method: req.method,
+        path: req.path,
+        headers: allHeaders
     });
 });
 
@@ -60,7 +74,13 @@ app.use((req, res) => {
         success: false,
         message: "Ruta no encontrada",
         path: req.originalUrl,
-        method: req.method
+        method: req.method,
+        suggestedEndpoints: [
+            "GET /",
+            "GET /headers", 
+            "GET /exercises",
+            "POST /users"
+        ]
     });
 });
 
