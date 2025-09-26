@@ -3,6 +3,15 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { jwt: jwtConfig } = require('../config/env');
 const { authenticateToken } = require('../middleware/auth');
+const {
+    successResponse,
+    createdResponse,
+    errorResponse,
+    notFoundResponse,
+    validationErrorResponse,
+    unauthorizedResponse,
+    serverErrorResponse
+} = require('../utils/responseHelpers');
 
 const router = express.Router();
 
@@ -17,105 +26,30 @@ let users = [
     }
 ];
 
-// GET /users - Listar usuarios (protegido)
-router.get('/', authenticateToken, (req, res) => {
-    try {
-        // Solo usuarios autenticados pueden ver la lista
-        const userList = users.map(user => ({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            createdAt: user.createdAt
-        }));
-
-        res.status(200).json({
-            success: true,
-            data: userList,
-            total: userList.length,
-            message: "Usuarios obtenidos correctamente"
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Error al obtener usuarios",
-            error: error.message
-        });
-    }
-});
-
-// GET /users/:id - Obtener usuario por ID
-router.get('/:id', authenticateToken, (req, res) => {
-    try {
-        const userId = parseInt(req.params.id);
-        
-        // Validar parámetro
-        if (isNaN(userId) || userId <= 0) {
-            return res.status(400).json({
-                success: false,
-                message: "ID de usuario inválido"
-            });
-        }
-
-        const user = users.find(u => u.id === userId);
-
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: "Usuario no encontrado"
-            });
-        }
-
-        // No devolver passwordHash
-        const userResponse = {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            createdAt: user.createdAt
-        };
-
-        res.status(200).json({
-            success: true,
-            data: userResponse,
-            message: "Usuario obtenido correctamente"
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Error al obtener el usuario",
-            error: error.message
-        });
-    }
-});
-
-// POST /users - Crear nuevo usuario (registro)
-router.post('/', async (req, res) => {
+// POST /auth/register - Registrar nuevo usuario
+router.post('/register', async (req, res) => {
     try {
         const { name, email, password } = req.body;
 
         // Validar datos requeridos
         if (!name || !email || !password) {
-            return res.status(400).json({
-                success: false,
-                message: "Nombre, email y contraseña son requeridos"
+            return validationErrorResponse(res, {
+                name: !name ? 'Nombre es requerido' : undefined,
+                email: !email ? 'Email es requerido' : undefined,
+                password: !password ? 'Contraseña es requerida' : undefined
             });
         }
 
         // Validar formato de email
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
-            return res.status(400).json({
-                success: false,
-                message: "Formato de email inválido"
-            });
+            return errorResponse(res, 'Formato de email inválido', 400);
         }
 
         // Verificar si el usuario ya existe
         const existingUser = users.find(u => u.email === email);
         if (existingUser) {
-            return res.status(409).json({
-                success: false,
-                message: "El email ya está registrado"
-            });
+            return errorResponse(res, 'El email ya está registrado', 409);
         }
 
         // Hash de la contraseña
@@ -141,17 +75,108 @@ router.post('/', async (req, res) => {
             createdAt: newUser.createdAt
         };
 
-        res.status(201).json({
-            success: true,
-            data: userResponse,
-            message: "Usuario creado exitosamente"
-        });
+        return createdResponse(res, userResponse, 'Usuario creado exitosamente');
+
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Error al crear el usuario",
-            error: error.message
-        });
+        return serverErrorResponse(res, error);
+    }
+});
+
+// POST /auth/login - Iniciar sesión
+router.post('/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        // Validar datos requeridos
+        if (!email || !password) {
+            return errorResponse(res, 'Email y contraseña son requeridos', 400);
+        }
+
+        // Buscar usuario
+        const user = users.find(u => u.email === email);
+        if (!user) {
+            return unauthorizedResponse(res, 'Credenciales inválidas');
+        }
+
+        // Verificar contraseña
+        const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+        if (!isPasswordValid) {
+            return unauthorizedResponse(res, 'Credenciales inválidas');
+        }
+
+        // Generar token JWT
+        const token = jwt.sign(
+            { 
+                userId: user.id, 
+                email: user.email 
+            }, 
+            jwtConfig.secret, 
+            { expiresIn: jwtConfig.expiresIn }
+        );
+
+        // Respuesta exitosa
+        return successResponse(res, {
+            token,
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email
+            }
+        }, 'Login exitoso');
+
+    } catch (error) {
+        return serverErrorResponse(res, error);
+    }
+});
+
+// GET /users - Listar usuarios (protegido)
+router.get('/', authenticateToken, (req, res) => {
+    try {
+        const userList = users.map(user => ({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            createdAt: user.createdAt
+        }));
+
+        return successResponse(res, {
+            users: userList,
+            total: userList.length
+        }, 'Usuarios obtenidos correctamente');
+
+    } catch (error) {
+        return serverErrorResponse(res, error);
+    }
+});
+
+// GET /users/:id - Obtener usuario por ID
+router.get('/:id', authenticateToken, (req, res) => {
+    try {
+        const userId = parseInt(req.params.id);
+
+        // Validar parámetro
+        if (isNaN(userId) || userId <= 0) {
+            return errorResponse(res, 'ID de usuario inválido', 400);
+        }
+
+        const user = users.find(u => u.id === userId);
+
+        if (!user) {
+            return notFoundResponse(res, 'Usuario');
+        }
+
+        // No devolver passwordHash
+        const userResponse = {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            createdAt: user.createdAt
+        };
+
+        return successResponse(res, userResponse, 'Usuario obtenido correctamente');
+
+    } catch (error) {
+        return serverErrorResponse(res, error);
     }
 });
 

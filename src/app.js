@@ -4,6 +4,7 @@ const { port } = require('./config/env');
 // Importar rutas
 const exercisesRoutes = require('./routes/exercises');
 const usersRoutes = require('./routes/users');
+const workoutsRoutes = require('./routes/workouts');
 
 // Importar middleware
 const { requestLogger } = require('./middleware/auth');
@@ -32,7 +33,7 @@ app.get("/", (req, res) => {
         'x-api-key': req.get('X-API-Key'),
         'x-client-version': req.get('X-Client-Version')
     };
-    
+
     res.status(200).json({
         success: true,
         message: "¡Workout Tracker API está funcionando!",
@@ -42,7 +43,12 @@ app.get("/", (req, res) => {
         headers: requestHeaders,
         endpoints: {
             exercises: "/exercises",
-            users: "/users"
+            users: "/users",
+            workouts: "/workouts",
+            auth: {
+                register: "POST /users/register",
+                login: "POST /users/login"
+            }
         }
     });
 });
@@ -50,11 +56,10 @@ app.get("/", (req, res) => {
 // Endpoint para ver headers de la request
 app.get("/headers", (req, res) => {
     const allHeaders = {};
-    
     Object.keys(req.headers).forEach(key => {
         allHeaders[key] = req.headers[key];
     });
-    
+
     res.status(200).json({
         success: true,
         yourIP: req.ip,
@@ -67,6 +72,7 @@ app.get("/headers", (req, res) => {
 // Rutas API
 app.use('/exercises', exercisesRoutes);
 app.use('/users', usersRoutes);
+app.use('/workouts', workoutsRoutes);
 
 // ✅ CORREGIDO: Manejo de rutas no encontradas (SIN PATRÓN)
 app.use((req, res) => {
@@ -74,12 +80,13 @@ app.use((req, res) => {
         success: false,
         message: "Ruta no encontrada",
         path: req.originalUrl,
-        method: req.method,
         suggestedEndpoints: [
             "GET /",
-            "GET /headers", 
+            "GET /headers",
             "GET /exercises",
-            "POST /users"
+            "POST /users/register",
+            "POST /users/login",
+            "GET /workouts"
         ]
     });
 });

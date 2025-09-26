@@ -1,0 +1,164 @@
+const express = require('express');
+const { authenticateToken } = require('../middleware/auth');
+const {
+    successResponse,
+    createdResponse,
+    errorResponse,
+    notFoundResponse,
+    validationErrorResponse,
+    serverErrorResponse
+} = require('../utils/responseHelpers');
+
+const router = express.Router();
+
+// Datos de ejemplo (simulando base de datos)
+let workouts = [
+    {
+        id: 1,
+        userId: 1,
+        name: "Chest Day",
+        exercises: [
+            {
+                exerciseId: 1,
+                name: "Bench Press",
+                sets: 3,
+                reps: 10,
+                weight: 70,
+                restTime: 60
+            }
+        ],
+        notes: "Focus on form",
+        completed: false,
+        scheduledDate: "2024-09-15T10:00:00Z",
+        createdAt: new Date('2024-01-10'),
+        updatedAt: new Date('2024-01-10')
+    }
+];
+
+// Middleware para verificar propiedad del workout
+const checkWorkoutOwnership = (req, res, next) => {
+    try {
+        const workoutId = parseInt(req.params.id);
+        const workout = workouts.find(w => w.id === workoutId);
+
+        if (!workout) {
+            return notFoundResponse(res, 'Workout');
+        }
+
+        // Verificar que el workout pertenece al usuario autenticado
+        if (workout.userId !== req.user.userId) {
+            return errorResponse(res, 'No tienes permisos para acceder a este workout', 403);
+        }
+
+        req.workout = workout;
+        next();
+    } catch (error) {
+        return serverErrorResponse(res, error);
+    }
+};
+
+// GET /workouts - Obtener todos los workouts del usuario
+router.get('/', authenticateToken, (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { limit, page, completed } = req.query;
+
+        let userWorkouts = workouts.filter(w => w.userId === userId);
+
+        // Filtrar por estado completed
+        if (completed !== undefined) {
+            const isCompleted = completed === 'true';
+            userWorkouts = userWorkouts.filter(w => w.completed === isCompleted);
+        }
+
+        // Paginación
+        const pageNumber = parseInt(page) || 1;
+        const limitNumber = parseInt(limit) || 10;
+        const startIndex = (pageNumber - 1) * limitNumber;
+        const endIndex = startIndex + limitNumber;
+
+        const paginatedWorkouts = userWorkouts.slice(startIndex, endIndex);
+
+        return successResponse(res, {
+            workouts: paginatedWorkouts,
+            pagination: {
+                page: pageNumber,
+                limit: limitNumber,
+                total: userWorkouts.length,
+                totalPages: Math.ceil(userWorkouts.length / limitNumber)
+            }
+        }, 'Workouts obtenidos correctamente');
+
+    } catch (error) {
+        return serverErrorResponse(res, error);
+    }
+});
+
+// GET /workouts/:id - Obtener workout por ID
+router.get('/:id', authenticateToken, checkWorkoutOwnership, (req, res) => {
+    try {
+        return successResponse(res, req.workout, 'Workout obtenido correctamente');
+    } catch (error) {
+        return serverErrorResponse(res, error);
+    }
+});
+
+// POST /workouts - Crear nuevo workout
+router.post('/', authenticateToken, (req, res) => {
+    try {
+        const { name, exercises, notes, scheduledDate } = req.body;
+        const userId = req.user.userId;
+
+        // Validaciones básicas
+        if (!name || !name.trim()) {
+            return validationErrorResponse(res, {
+                name: 'Nombre del workout es requerido'
+            });
+        }
+
+        if (!exercises || !Array.isArray(exercises) || exercises.length === 0) {
+            return validationErrorResponse(res, {
+                exercises: 'Debe incluir al menos un ejercicio'
+            });
+        }
+
+        // Validar cada ejercicio
+        for (let i = 0; i < exercises.length; i++) {
+            const exercise = exercises[i];
+            if (!exercise.exerciseId || !exercise.sets || !exercise.reps) {
+                return validationErrorResponse(res, {
+                    exercises: `Ejercicio ${i + 1} debe tener exerciseId, sets y reps`
+                });
+            }
+        }
+
+        // Crear nuevo workout
+        const newWorkout = {
+            id: workouts.length + 1,
+            userId,
+            name: name.trim(),
+            exercises: exercises.map(ex => ({
+                exerciseId: ex.exerciseId,
+                name: ex.name || `Exercise ${ex.exerciseId}`,
+                sets: ex.sets,
+                reps: ex.reps,
+                weight: ex.weight || 0,
+                restTime: ex.restTime || 60
+            })),
+            notes: notes || '',
+            completed: false,
+            scheduledDate: scheduledDate || null,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+
+        workouts.push(newWorkout);
+
+        return createdResponse(res, newWorkout, 'Workout creado exitosamente');
+
+    } catch (error) {
+        return serverErrorResponse(res, error);
+    }
+});
+
+module.exports = router;
