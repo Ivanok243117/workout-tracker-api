@@ -3,6 +3,10 @@ const { port } = require('./config/env');
 
 // Importar rutas
 const exercisesRoutes = require('./routes/exercises');
+const usersRoutes = require('./routes/users');
+
+// Importar middleware
+const { requestLogger } = require('./middleware/auth');
 
 const app = express();
 
@@ -10,13 +14,25 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Middleware de log
+app.use(requestLogger);
+
 // Configurar headers de respuesta
 app.use((req, res, next) => {
     res.set({
         'X-Powered-By': 'Express',
         'X-API-Version': '1.0.0',
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
     });
+    
+    // Manejar preflight requests
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+    
     next();
 });
 
@@ -29,15 +45,16 @@ app.get("/", (req, res) => {
         timestamp: new Date().toISOString(),
         endpoints: {
             exercises: "/exercises",
-            exercises_by_id: "/exercises/:id"
+            users: "/users"
         }
     });
 });
 
 // Rutas API
 app.use('/exercises', exercisesRoutes);
+app.use('/users', usersRoutes);
 
-// ✅ SOLUCIÓN DEFINITIVA: Middleware 404 SIN PATRÓN
+// ✅ CORREGIDO: Manejo de rutas no encontradas (SIN PATRÓN)
 app.use((req, res) => {
     res.status(404).json({
         success: false,
