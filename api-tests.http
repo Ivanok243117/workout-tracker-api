@@ -1,4 +1,6 @@
 @baseUrl = http://localhost:8000
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSIsImlhdCI6MTc1ODkzNzc5MCwiZXhwIjoxNzU5NTQyNTkwfQ.3L8839sbwZdVZKd8r_j1YBGHefLMoq-0FzvoB5T_wZg
+@workoutId = {{createWorkout.response.body.data.id}}
 
 ### 🏠 1. TEST - Obtener información de la API
 GET {{baseUrl}}/
@@ -16,7 +18,7 @@ Content-Type: application/json
     "password": "password123"
 }
 
-### 🔑 4. TEST - Login (SIN SCRIPT POR AHORA)
+### 🔑 4. TEST - Login (OBTENER TOKEN AQUÍ)
 POST {{baseUrl}}/users/login
 Content-Type: application/json
 
@@ -25,10 +27,10 @@ Content-Type: application/json
     "password": "password123"
 }
 
-### 💪 5. TEST - Crear workout (con token manual por ahora)
+### 💪 5. TEST - Crear workout (PARA USUARIO ACTUAL)
 POST {{baseUrl}}/workouts
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSIsImlhdCI6MTc1ODkzNTUxNywiZXhwIjoxNzU5NTQwMzE3fQ.vL5oopyre4Z340QB6VWG8R98HYlrHeHVBAQa_jW9gPw
+Authorization: Bearer {{token}}
 
 {
     "name": "Mi Primer Workout",
@@ -45,12 +47,12 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtY
 
 ### 📋 6. TEST - Obtener workouts del usuario
 GET {{baseUrl}}/workouts
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSIsImlhdCI6MTc1ODkzNTUxNywiZXhwIjoxNzU5NTQwMzE3fQ.vL5oopyre4Z340QB6VWG8R98HYlrHeHVBAQa_jW9gPw
+Authorization: Bearer {{token}}
 
-### 7. TEST - Crear schedule (CORREGIDO)
+### 📅 7. TEST - Crear schedule
 POST {{baseUrl}}/schedules
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSIsImlhdCI6MTc1ODkzNTUxNywiZXhwIjoxNzU5NTQwMzE3fQ.vL5oopyre4Z340QB6VWG8R98HYlrHeHVBAQa_jW9gPw
+Authorization: Bearer {{token}}
 
 {
     "workoutId": 1,
@@ -60,4 +62,109 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtY
 
 ### 📊 8. TEST - Obtener schedules
 GET {{baseUrl}}/schedules
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSIsImlhdCI6MTc1ODkzNTUxNywiZXhwIjoxNzU5NTQwMzE3fQ.vL5oopyre4Z340QB6VWG8R98HYlrHeHVBAQa_jW9gPw
+Authorization: Bearer {{token}}
+
+### 🔄 9. TEST - PUT - Actualización completa de usuario
+PUT {{baseUrl}}/users/2
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "name": "Test User Updated",
+    "email": "test.updated@example.com"
+}
+
+### 🔧 10. TEST - PATCH - Actualización parcial de usuario
+PATCH {{baseUrl}}/users/2
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "name": "Test User Partial Update"
+}
+
+### 🔄 11. TEST - PUT - Actualización completa de workout (USAR ID CORRECTO)
+PUT {{baseUrl}}/workouts/2
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "name": "Mi Primer Workout - COMPLETO",
+    "exercises": [
+        {
+            "exerciseId": 1,
+            "sets": 5,
+            "reps": 12,
+            "weight": 60
+        },
+        {
+            "exerciseId": 2,
+            "sets": 4,
+            "reps": 10,
+            "weight": 40
+        }
+    ],
+    "notes": "Workout completamente actualizado",
+    "scheduledDate": "2025-09-29T10:00:00Z"
+}
+
+### 🔧 12. TEST - PATCH - Actualización parcial de workout (solo nombre)
+PATCH {{baseUrl}}/workouts/2
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "name": "Workout con nombre actualizado"
+}
+
+### 🔧 13. TEST - PATCH - Marcar workout como completado
+PATCH {{baseUrl}}/workouts/2
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "completed": true
+}
+
+### 🔧 14. TEST - PATCH - Actualizar solo ejercicios del workout
+PATCH {{baseUrl}}/workouts/2
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "exercises": [
+        {
+            "exerciseId": 1,
+            "sets": 4,
+            "reps": 15,
+            "weight": 55,
+            "restTime": 90
+        }
+    ]
+}
+
+### 🔧 15. TEST - PATCH - Actualizar email de usuario
+PATCH {{baseUrl}}/users/2
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "email": "nuevo.email@example.com"
+}
+
+### 🔧 16. TEST - PATCH - Actualizar contraseña de usuario
+PATCH {{baseUrl}}/users/2
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "password": "nuevaPassword123"
+}
+
+### 📋 17. TEST - Verificar workout actualizado
+GET {{baseUrl}}/workouts/2
+Authorization: Bearer {{token}}
+
+### 👤 18. TEST - Verificar usuario actualizado
+GET {{baseUrl}}/users/2
+Authorization: Bearer {{token}}

@@ -180,4 +180,146 @@ router.get('/:id', authenticateToken, (req, res) => {
     }
 });
 
+// PUT /users/:id - Actualización completa de usuario
+router.put('/:id', authenticateToken, async (req, res) => {
+    try {
+        const userId = parseInt(req.params.id);
+        const { name, email, password } = req.body;
+        const currentUserId = req.user.userId;
+
+        // Verificar que el usuario solo puede actualizar su propio perfil
+        if (userId !== currentUserId) {
+            return errorResponse(res, 'Solo puedes actualizar tu propio perfil', 403);
+        }
+
+        // Validar datos requeridos para PUT (actualización completa)
+        if (!name || !email) {
+            return validationErrorResponse(res, {
+                name: !name ? 'Nombre es requerido' : undefined,
+                email: !email ? 'Email es requerido' : undefined
+            });
+        }
+
+        // Validar formato de email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return errorResponse(res, 'Formato de email inválido', 400);
+        }
+
+        // Buscar usuario
+        const userIndex = users.findIndex(u => u.id === userId);
+        if (userIndex === -1) {
+            return notFoundResponse(res, 'Usuario');
+        }
+
+        // Verificar si el nuevo email ya existe (excluyendo el usuario actual)
+        const emailExists = users.find(u => u.email === email && u.id !== userId);
+        if (emailExists) {
+            return errorResponse(res, 'El email ya está registrado', 409);
+        }
+
+        // Preparar actualización completa
+        const updatedUser = {
+            ...users[userIndex],
+            name: name.trim(),
+            email: email.toLowerCase(),
+            updatedAt: new Date()
+        };
+
+        // Actualizar contraseña si se proporciona
+        if (password) {
+            const saltRounds = 10;
+            updatedUser.passwordHash = await bcrypt.hash(password, saltRounds);
+        }
+
+        // Aplicar actualización
+        users[userIndex] = updatedUser;
+
+        // Respuesta sin passwordHash
+        const userResponse = {
+            id: updatedUser.id,
+            name: updatedUser.name,
+            email: updatedUser.email,
+            createdAt: updatedUser.createdAt,
+            updatedAt: updatedUser.updatedAt
+        };
+
+        return successResponse(res, userResponse, 'Usuario actualizado completamente');
+
+    } catch (error) {
+        return serverErrorResponse(res, error);
+    }
+});
+
+// PATCH /users/:id - Actualización parcial de usuario
+router.patch('/:id', authenticateToken, async (req, res) => {
+    try {
+        const userId = parseInt(req.params.id);
+        const { name, email, password } = req.body;
+        const currentUserId = req.user.userId;
+
+        // Verificar permisos
+        if (userId !== currentUserId) {
+            return errorResponse(res, 'Solo puedes actualizar tu propio perfil', 403);
+        }
+
+        // Buscar usuario
+        const userIndex = users.findIndex(u => u.id === userId);
+        if (userIndex === -1) {
+            return notFoundResponse(res, 'Usuario');
+        }
+
+        // Validar que haya al menos un campo para actualizar
+        const updates = {};
+        if (name !== undefined) updates.name = name.trim();
+        if (email !== undefined) updates.email = email.toLowerCase();
+        if (password !== undefined) updates.password = password;
+
+        if (Object.keys(updates).length === 0) {
+            return errorResponse(res, 'Debe proporcionar al menos un campo para actualizar', 400);
+        }
+
+        // Validar email si se está actualizando
+        if (updates.email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(updates.email)) {
+                return errorResponse(res, 'Formato de email inválido', 400);
+            }
+
+            // Verificar si el nuevo email ya existe
+            const emailExists = users.find(u => u.email === updates.email && u.id !== userId);
+            if (emailExists) {
+                return errorResponse(res, 'El email ya está registrado', 409);
+            }
+        }
+
+        // Aplicar actualización parcial
+        const updatedUser = { ...users[userIndex] };
+
+        if (updates.name) updatedUser.name = updates.name;
+        if (updates.email) updatedUser.email = updates.email;
+        if (updates.password) {
+            const saltRounds = 10;
+            updatedUser.passwordHash = await bcrypt.hash(updates.password, saltRounds);
+        }
+
+        updatedUser.updatedAt = new Date();
+        users[userIndex] = updatedUser;
+
+        // Respuesta sin passwordHash
+        const userResponse = {
+            id: updatedUser.id,
+            name: updatedUser.name,
+            email: updatedUser.email,
+            createdAt: updatedUser.createdAt,
+            updatedAt: updatedUser.updatedAt
+        };
+
+        return successResponse(res, userResponse, 'Usuario actualizado parcialmente');
+
+    } catch (error) {
+        return serverErrorResponse(res, error);
+    }
+});
+
 module.exports = router;

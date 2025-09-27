@@ -161,6 +161,124 @@ router.post('/', authenticateToken, (req, res) => {
     }
 });
 
+// PUT /workouts/:id - Actualización completa del workout
+router.put('/:id', authenticateToken, checkWorkoutOwnership, (req, res) => {
+    try {
+        const workout = req.workout;
+        const { name, exercises, notes, scheduledDate } = req.body;
+
+        // Validaciones para actualización completa
+        if (!name || !name.trim()) {
+            return validationErrorResponse(res, {
+                name: 'Nombre del workout es requerido'
+            });
+        }
+
+        if (!exercises || !Array.isArray(exercises) || exercises.length === 0) {
+            return validationErrorResponse(res, {
+                exercises: 'Debe incluir al menos un ejercicio'
+            });
+        }
+
+        // Validar cada ejercicio
+        for (let i = 0; i < exercises.length; i++) {
+            const exercise = exercises[i];
+            if (!exercise.exerciseId || !exercise.sets || !exercise.reps) {
+                return validationErrorResponse(res, {
+                    exercises: `Ejercicio ${i + 1} debe tener exerciseId, sets y reps`
+                });
+            }
+        }
+
+        // Actualización completa
+        workout.name = name.trim();
+        workout.exercises = exercises.map(ex => ({
+            exerciseId: ex.exerciseId,
+            name: ex.name || `Exercise ${ex.exerciseId}`,
+            sets: ex.sets,
+            reps: ex.reps,
+            weight: ex.weight || 0,
+            restTime: ex.restTime || 60
+        }));
+        workout.notes = notes || '';
+        workout.scheduledDate = scheduledDate || null;
+        workout.updatedAt = new Date();
+
+        return successResponse(res, workout, 'Workout actualizado completamente');
+
+    } catch (error) {
+        return serverErrorResponse(res, error);
+    }
+});
+
+// PATCH /workouts/:id - Actualización parcial del workout
+router.patch('/:id', authenticateToken, checkWorkoutOwnership, (req, res) => {
+    try {
+        const workout = req.workout;
+        const { name, exercises, notes, scheduledDate, completed } = req.body;
+
+        // Validar que haya al menos un campo para actualizar
+        const updates = {};
+        if (name !== undefined) updates.name = name;
+        if (exercises !== undefined) updates.exercises = exercises;
+        if (notes !== undefined) updates.notes = notes;
+        if (scheduledDate !== undefined) updates.scheduledDate = scheduledDate;
+        if (completed !== undefined) updates.completed = completed;
+
+        if (Object.keys(updates).length === 0) {
+            return errorResponse(res, 'Debe proporcionar al menos un campo para actualizar', 400);
+        }
+
+        // Aplicar actualización parcial
+        if (updates.name !== undefined) {
+            if (!updates.name.trim()) {
+                return validationErrorResponse(res, {
+                    name: 'Nombre no puede estar vacío'
+                });
+            }
+            workout.name = updates.name.trim();
+        }
+
+        if (updates.exercises !== undefined) {
+            if (!Array.isArray(updates.exercises) || updates.exercises.length === 0) {
+                return validationErrorResponse(res, {
+                    exercises: 'Debe ser un array con al menos un ejercicio'
+                });
+            }
+            workout.exercises = updates.exercises.map(ex => ({
+                exerciseId: ex.exerciseId,
+                name: ex.name || `Exercise ${ex.exerciseId}`,
+                sets: ex.sets,
+                reps: ex.reps,
+                weight: ex.weight || 0,
+                restTime: ex.restTime || 60
+            }));
+        }
+
+        if (updates.notes !== undefined) {
+            workout.notes = updates.notes;
+        }
+
+        if (updates.scheduledDate !== undefined) {
+            workout.scheduledDate = updates.scheduledDate;
+        }
+
+        if (updates.completed !== undefined) {
+            workout.completed = updates.completed;
+            if (updates.completed && !workout.completedAt) {
+                workout.completedAt = new Date();
+            }
+        }
+
+        workout.updatedAt = new Date();
+
+        return successResponse(res, workout, 'Workout actualizado parcialmente');
+
+    } catch (error) {
+        return serverErrorResponse(res, error);
+    }
+});
+
 // POST /workouts/:id/complete - Marcar workout como completado
 router.post('/:id/complete', authenticateToken, checkWorkoutOwnership, (req, res) => {
     try {
