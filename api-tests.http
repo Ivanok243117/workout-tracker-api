@@ -1,0 +1,63 @@
+@baseUrl = http://localhost:8000
+
+### 🏠 1. TEST - Obtener información de la API
+GET {{baseUrl}}/
+
+### 📋 2. TEST - Obtener todos los ejercicios (público)
+GET {{baseUrl}}/exercises
+
+### 👤 3. TEST - Registrar nuevo usuario
+POST {{baseUrl}}/users/register
+Content-Type: application/json
+
+{
+    "name": "Test User",
+    "email": "test@example.com",
+    "password": "password123"
+}
+
+### 🔑 4. TEST - Login (SIN SCRIPT POR AHORA)
+POST {{baseUrl}}/users/login
+Content-Type: application/json
+
+{
+    "email": "test@example.com",
+    "password": "password123"
+}
+
+### 💪 5. TEST - Crear workout (con token manual por ahora)
+POST {{baseUrl}}/workouts
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSIsImlhdCI6MTc1ODkzNTUxNywiZXhwIjoxNzU5NTQwMzE3fQ.vL5oopyre4Z340QB6VWG8R98HYlrHeHVBAQa_jW9gPw
+
+{
+    "name": "Mi Primer Workout",
+    "exercises": [
+        {
+            "exerciseId": 1,
+            "sets": 3,
+            "reps": 10,
+            "weight": 50
+        }
+    ],
+    "notes": "Workout de prueba"
+}
+
+### 📋 6. TEST - Obtener workouts del usuario
+GET {{baseUrl}}/workouts
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSIsImlhdCI6MTc1ODkzNTUxNywiZXhwIjoxNzU5NTQwMzE3fQ.vL5oopyre4Z340QB6VWG8R98HYlrHeHVBAQa_jW9gPw
+
+### 7. TEST - Crear schedule (CORREGIDO)
+POST {{baseUrl}}/schedules
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSIsImlhdCI6MTc1ODkzNTUxNywiZXhwIjoxNzU5NTQwMzE3fQ.vL5oopyre4Z340QB6VWG8R98HYlrHeHVBAQa_jW9gPw
+
+{
+    "workoutId": 1,
+    "scheduledDate": "2025-09-28T18:00:00Z",
+    "notes": "Sesión de tarde"
+}
+
+### 📊 8. TEST - Obtener schedules
+GET {{baseUrl}}/schedules
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSIsImlhdCI6MTc1ODkzNTUxNywiZXhwIjoxNzU5NTQwMzE3fQ.vL5oopyre4Z340QB6VWG8R98HYlrHeHVBAQa_jW9gPw

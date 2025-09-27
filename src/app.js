@@ -5,6 +5,7 @@ const { port } = require('./config/env');
 const exercisesRoutes = require('./routes/exercises');
 const usersRoutes = require('./routes/users');
 const workoutsRoutes = require('./routes/workouts');
+const schedulesRoutes = require('./routes/schedules');
 
 // Importar middleware
 const { requestLogger } = require('./middleware/auth');
@@ -42,12 +43,28 @@ app.get("/", (req, res) => {
         yourIP: req.ip,
         headers: requestHeaders,
         endpoints: {
-            exercises: "/exercises",
-            users: "/users",
-            workouts: "/workouts",
-            auth: {
+            exercises: {
+                list: "GET /exercises",
+                byId: "GET /exercises/:id"
+            },
+            users: {
                 register: "POST /users/register",
-                login: "POST /users/login"
+                login: "POST /users/login",
+                list: "GET /users (auth required)",
+                byId: "GET /users/:id (auth required)"
+            },
+            workouts: {
+                list: "GET /workouts (auth required)",
+                byId: "GET /workouts/:id (auth required)",
+                create: "POST /workouts (auth required)",
+                complete: "POST /workouts/:id/complete (auth required)",
+                addExercise: "POST /workouts/:id/exercises (auth required)"
+            },
+            schedules: {
+                list: "GET /schedules (auth required)",
+                byId: "GET /schedules/:id (auth required)",
+                create: "POST /schedules (auth required)",
+                complete: "POST /schedules/:id/complete (auth required)"
             }
         }
     });
@@ -73,6 +90,7 @@ app.get("/headers", (req, res) => {
 app.use('/exercises', exercisesRoutes);
 app.use('/users', usersRoutes);
 app.use('/workouts', workoutsRoutes);
+app.use('/schedules', schedulesRoutes);
 
 // ✅ CORREGIDO: Manejo de rutas no encontradas (SIN PATRÓN)
 app.use((req, res) => {
@@ -86,7 +104,8 @@ app.use((req, res) => {
             "GET /exercises",
             "POST /users/register",
             "POST /users/login",
-            "GET /workouts"
+            "GET /workouts",
+            "GET /schedules"
         ]
     });
 });

@@ -161,4 +161,66 @@ router.post('/', authenticateToken, (req, res) => {
     }
 });
 
+// POST /workouts/:id/complete - Marcar workout como completado
+router.post('/:id/complete', authenticateToken, checkWorkoutOwnership, (req, res) => {
+    try {
+        const workout = req.workout;
+        
+        if (workout.completed) {
+            return errorResponse(res, 'El workout ya está completado', 400);
+        }
+
+        // Actualizar workout
+        workout.completed = true;
+        workout.completedAt = new Date();
+        workout.updatedAt = new Date();
+
+        return successResponse(res, workout, 'Workout marcado como completado');
+
+    } catch (error) {
+        return serverErrorResponse(res, error);
+    }
+});
+
+// POST /workouts/:id/exercises - Agregar ejercicio a workout
+router.post('/:id/exercises', authenticateToken, checkWorkoutOwnership, (req, res) => {
+    try {
+        const { exerciseId, sets, reps, weight, restTime } = req.body;
+        const workout = req.workout;
+
+        // Validaciones
+        if (!exerciseId || !sets || !reps) {
+            return validationErrorResponse(res, {
+                exerciseId: !exerciseId ? 'exerciseId es requerido' : undefined,
+                sets: !sets ? 'sets es requerido' : undefined,
+                reps: !reps ? 'reps es requerido' : undefined
+            });
+        }
+
+        // Verificar si el ejercicio ya existe en el workout
+        const existingExercise = workout.exercises.find(ex => ex.exerciseId === exerciseId);
+        if (existingExercise) {
+            return errorResponse(res, 'El ejercicio ya existe en este workout', 400);
+        }
+
+        // Agregar nuevo ejercicio
+        const newExercise = {
+            exerciseId,
+            name: `Exercise ${exerciseId}`,
+            sets: parseInt(sets),
+            reps: parseInt(reps),
+            weight: weight ? parseFloat(weight) : 0,
+            restTime: restTime ? parseInt(restTime) : 60
+        };
+
+        workout.exercises.push(newExercise);
+        workout.updatedAt = new Date();
+
+        return createdResponse(res, workout, 'Ejercicio agregado al workout exitosamente');
+
+    } catch (error) {
+        return serverErrorResponse(res, error);
+    }
+});
+
 module.exports = router;
