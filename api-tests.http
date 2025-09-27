@@ -1,5 +1,5 @@
 @baseUrl = http://localhost:8000
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSIsImlhdCI6MTc1ODk0NjAzMSwiZXhwIjoxNzU5NTUwODMxfQ.3TkhIbYX2m2_rB9OiEdK9mmd4nO94s0qQ5GNxK5aTZo
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSIsImlhdCI6MTc1ODk0NzYxOSwiZXhwIjoxNzU5NTUyNDE5fQ.YGTSSIPf6eD8c9_bzpAxvDFpR2hEntdH7Hy6J6IM3dg
 
 ### 🏠 1. TEST - Obtener información de la API
 GET {{baseUrl}}/
