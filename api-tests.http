@@ -1,6 +1,5 @@
 @baseUrl = http://localhost:8000
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSIsImlhdCI6MTc1ODkzNzc5MCwiZXhwIjoxNzU5NTQyNTkwfQ.3L8839sbwZdVZKd8r_j1YBGHefLMoq-0FzvoB5T_wZg
-@workoutId = {{createWorkout.response.body.data.id}}
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSIsImlhdCI6MTc1ODk0NjAzMSwiZXhwIjoxNzU5NTUwODMxfQ.3TkhIbYX2m2_rB9OiEdK9mmd4nO94s0qQ5GNxK5aTZo
 
 ### 🏠 1. TEST - Obtener información de la API
 GET {{baseUrl}}/
@@ -28,6 +27,7 @@ Content-Type: application/json
 }
 
 ### 💪 5. TEST - Crear workout (PARA USUARIO ACTUAL)
+# @name createWorkout
 POST {{baseUrl}}/workouts
 Content-Type: application/json
 Authorization: Bearer {{token}}
@@ -50,6 +50,7 @@ GET {{baseUrl}}/workouts
 Authorization: Bearer {{token}}
 
 ### 📅 7. TEST - Crear schedule
+# @name createSchedule
 POST {{baseUrl}}/schedules
 Content-Type: application/json
 Authorization: Bearer {{token}}
@@ -83,7 +84,7 @@ Authorization: Bearer {{token}}
     "name": "Test User Partial Update"
 }
 
-### 🔄 11. TEST - PUT - Actualización completa de workout (USAR ID CORRECTO)
+### 🔄 11. TEST - PUT - Actualización completa de workout
 PUT {{baseUrl}}/workouts/2
 Content-Type: application/json
 Authorization: Bearer {{token}}
@@ -167,4 +168,46 @@ Authorization: Bearer {{token}}
 
 ### 👤 18. TEST - Verificar usuario actualizado
 GET {{baseUrl}}/users/2
+Authorization: Bearer {{token}}
+
+### 🔍 18.1 VERIFICAR - Qué workouts existen ANTES de DELETE
+# @name getWorkoutsBefore
+GET {{baseUrl}}/workouts
+Authorization: Bearer {{token}}
+
+### 🔍 18.2 VERIFICAR - Qué schedules existen ANTES de DELETE
+# @name getSchedulesBefore
+GET {{baseUrl}}/schedules
+Authorization: Bearer {{token}}
+
+### 🗑️ 19. TEST - DELETE workout (ID 2 - que sabemos existe)
+DELETE {{baseUrl}}/workouts/2
+Authorization: Bearer {{token}}
+
+### 🗑️ 19.1 TEST - DELETE workout alternativo (solo si existe)
+DELETE {{baseUrl}}/workouts/3
+Authorization: Bearer {{token}}
+
+### 🗑️ 20. TEST - DELETE schedule (ID 2 - que sabemos existe)
+DELETE {{baseUrl}}/schedules/2
+Authorization: Bearer {{token}}
+
+### 🗑️ 20.1 TEST - DELETE schedule alternativo (solo si existe)
+DELETE {{baseUrl}}/schedules/3
+Authorization: Bearer {{token}}
+
+### 🗑️ 21. TEST - DELETE user (requiere confirmación - ÚLTIMO)
+DELETE {{baseUrl}}/users/2?confirmation=true
+Authorization: Bearer {{token}}
+
+### 🗑️ 22. TEST - DELETE múltiple de schedules
+DELETE {{baseUrl}}/schedules?status=cancelled&confirmation=true
+Authorization: Bearer {{token}}
+
+### 🔍 23. TEST - Verificar workouts después de DELETE
+GET {{baseUrl}}/workouts
+Authorization: Bearer {{token}}
+
+### 🔍 23.1 TEST - Verificar schedules después de DELETE
+GET {{baseUrl}}/schedules
 Authorization: Bearer {{token}}

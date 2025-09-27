@@ -341,4 +341,66 @@ router.post('/:id/exercises', authenticateToken, checkWorkoutOwnership, (req, re
     }
 });
 
+// DELETE /workouts/:id - Eliminar workout
+router.delete('/:id', authenticateToken, checkWorkoutOwnership, (req, res) => {
+    try {
+        const workoutId = parseInt(req.params.id);
+        
+        // Encontrar índice del workout
+        const workoutIndex = workouts.findIndex(w => w.id === workoutId);
+        if (workoutIndex === -1) {
+            return notFoundResponse(res, 'Workout');
+        }
+
+        // Eliminar workout
+        const deletedWorkout = workouts.splice(workoutIndex, 1)[0];
+
+        // Nota: En una aplicación real, aquí eliminarías también los schedules relacionados
+        // schedules = schedules.filter(s => s.workoutId !== workoutId);
+
+        return successResponse(res, {
+            workout: {
+                id: deletedWorkout.id,
+                name: deletedWorkout.name
+            },
+            message: 'Workout eliminado exitosamente'
+        }, 'Workout eliminado correctamente', 200);
+
+    } catch (error) {
+        return serverErrorResponse(res, error);
+    }
+});
+
+// DELETE /workouts/:id/exercises/:exerciseId - Eliminar ejercicio específico del workout
+router.delete('/:id/exercises/:exerciseId', authenticateToken, checkWorkoutOwnership, (req, res) => {
+    try {
+        const workout = req.workout;
+        const exerciseId = parseInt(req.params.exerciseId);
+
+        // Validar exerciseId
+        if (isNaN(exerciseId) || exerciseId <= 0) {
+            return errorResponse(res, 'ID de ejercicio inválido', 400);
+        }
+
+        // Encontrar índice del ejercicio
+        const exerciseIndex = workout.exercises.findIndex(ex => ex.exerciseId === exerciseId);
+        if (exerciseIndex === -1) {
+            return notFoundResponse(res, 'Ejercicio en el workout');
+        }
+
+        // Eliminar ejercicio
+        const deletedExercise = workout.exercises.splice(exerciseIndex, 1)[0];
+        workout.updatedAt = new Date();
+
+        return successResponse(res, {
+            workoutId: workout.id,
+            exercise: deletedExercise,
+            remainingExercises: workout.exercises.length
+        }, 'Ejercicio eliminado del workout correctamente');
+
+    } catch (error) {
+        return serverErrorResponse(res, error);
+    }
+});
+
 module.exports = router;

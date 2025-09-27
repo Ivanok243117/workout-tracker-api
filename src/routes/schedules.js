@@ -174,4 +174,86 @@ router.post('/:id/complete', authenticateToken, checkScheduleOwnership, (req, re
     }
 });
 
+// DELETE /schedules/:id - Eliminar schedule
+router.delete('/:id', authenticateToken, checkScheduleOwnership, (req, res) => {
+    try {
+        const scheduleId = parseInt(req.params.id);
+        
+        // Encontrar índice del schedule
+        const scheduleIndex = schedules.findIndex(s => s.id === scheduleId);
+        if (scheduleIndex === -1) {
+            return notFoundResponse(res, 'Schedule');
+        }
+
+        // Eliminar schedule
+        const deletedSchedule = schedules.splice(scheduleIndex, 1)[0];
+
+        return successResponse(res, {
+            schedule: {
+                id: deletedSchedule.id,
+                scheduledDate: deletedSchedule.scheduledDate,
+                status: deletedSchedule.status
+            },
+            message: 'Schedule eliminado exitosamente'
+        }, 'Schedule eliminado correctamente', 200);
+
+    } catch (error) {
+        return serverErrorResponse(res, error);
+    }
+});
+
+// DELETE /schedules - Eliminación múltiple por query parameters
+router.delete('/', authenticateToken, (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { status, beforeDate } = req.query;
+
+        let schedulesToDelete = schedules.filter(s => s.userId === userId);
+
+        // Aplicar filtros
+        if (status) {
+            schedulesToDelete = schedulesToDelete.filter(s => s.status === status);
+        }
+
+        if (beforeDate) {
+            const cutoffDate = new Date(beforeDate);
+            schedulesToDelete = schedulesToDelete.filter(s => new Date(s.scheduledDate) < cutoffDate);
+        }
+
+        // Verificar que hay schedules para eliminar
+        if (schedulesToDelete.length === 0) {
+            return successResponse(res, {
+                deletedCount: 0,
+                message: 'No hay schedules que coincidan con los criterios'
+            }, 'No se eliminó ningún schedule');
+        }
+
+        // Confirmación para eliminación múltiple
+        const { confirmation } = req.query;
+        if (confirmation !== 'true') {
+            return errorResponse(res, 
+                `Confirmación requerida para eliminar ${schedulesToDelete.length} schedules. Agrega ?confirmation=true`, 
+                400
+            );
+        }
+
+        // Eliminar schedules
+        const deletedIds = schedulesToDelete.map(s => s.id);
+        schedules = schedules.filter(s => !deletedIds.includes(s.id));
+
+        return successResponse(res, {
+            deletedCount: deletedIds.length,
+            deletedIds,
+            filters: {
+                status,
+                beforeDate
+            },
+            message: `${deletedIds.length} schedules eliminados exitosamente`
+        }, 'Eliminación múltiple completada', 200);
+
+    } catch (error) {
+        return serverErrorResponse(res, error);
+    }
+});
+
 module.exports = router;

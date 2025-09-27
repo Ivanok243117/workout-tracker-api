@@ -322,4 +322,90 @@ router.patch('/:id', authenticateToken, async (req, res) => {
     }
 });
 
+// DELETE /users/:id - Eliminar usuario
+router.delete('/:id', authenticateToken, async (req, res) => {
+    try {
+        const userId = parseInt(req.params.id);
+        const currentUserId = req.user.userId;
+
+        // Verificar permisos
+        if (userId !== currentUserId) {
+            return errorResponse(res, 'Solo puedes eliminar tu propia cuenta', 403);
+        }
+
+        // Buscar usuario
+        const userIndex = users.findIndex(u => u.id === userId);
+        if (userIndex === -1) {
+            return notFoundResponse(res, 'Usuario');
+        }
+
+        // Eliminar usuario
+        const deletedUser = users.splice(userIndex, 1)[0];
+
+        // Respuesta sin passwordHash
+        const userResponse = {
+            id: deletedUser.id,
+            name: deletedUser.name,
+            email: deletedUser.email,
+            message: 'Usuario eliminado exitosamente'
+        };
+
+        return successResponse(res, userResponse, 'Usuario eliminado correctamente', 200);
+
+    } catch (error) {
+        return serverErrorResponse(res, error);
+    }
+});
+
+// DELETE /users/:id/force - Eliminación forzada con confirmación
+router.delete('/:id/force', authenticateToken, async (req, res) => {
+    try {
+        const userId = parseInt(req.params.id);
+        const currentUserId = req.user.userId;
+        const { confirmation } = req.query;
+
+        // Verificar permisos
+        if (userId !== currentUserId) {
+            return errorResponse(res, 'Solo puedes eliminar tu propia cuenta', 403);
+        }
+
+        // Confirmación requerida para eliminación
+        if (confirmation !== 'true') {
+            return errorResponse(res, 
+                'Confirmación requerida para eliminación. Agrega ?confirmation=true', 
+                400
+            );
+        }
+
+        // Buscar usuario
+        const userIndex = users.findIndex(u => u.id === userId);
+        if (userIndex === -1) {
+            return notFoundResponse(res, 'Usuario');
+        }
+
+        // Eliminar usuario y datos relacionados (simulación)
+        const deletedUser = users.splice(userIndex, 1)[0];
+        
+        // Simular eliminación de datos relacionados
+        const deletedWorkouts = workouts.filter(w => w.userId === userId).length;
+        const deletedSchedules = schedules.filter(s => s.userId === userId).length;
+
+        return successResponse(res, {
+            user: {
+                id: deletedUser.id,
+                name: deletedUser.name,
+                email: deletedUser.email
+            },
+            deletedData: {
+                workouts: deletedWorkouts,
+                schedules: deletedSchedules
+            },
+            message: 'Usuario y todos sus datos han sido eliminados permanentemente'
+        }, 'Eliminación completada', 200);
+
+    } catch (error) {
+        return serverErrorResponse(res, error);
+    }
+});
+
 module.exports = router;

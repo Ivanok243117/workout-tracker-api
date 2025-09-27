@@ -51,19 +51,29 @@ app.get("/", (req, res) => {
                 register: "POST /users/register",
                 login: "POST /users/login",
                 list: "GET /users (auth required)",
-                byId: "GET /users/:id (auth required)"
+                byId: "GET /users/:id (auth required)",
+                update: "PUT /users/:id (auth required)",
+                partialUpdate: "PATCH /users/:id (auth required)",
+                delete: "DELETE /users/:id (auth required)",
+                forceDelete: "DELETE /users/:id/force?confirmation=true (auth required)"
             },
             workouts: {
                 list: "GET /workouts (auth required)",
                 byId: "GET /workouts/:id (auth required)",
                 create: "POST /workouts (auth required)",
+                update: "PUT /workouts/:id (auth required)",
+                partialUpdate: "PATCH /workouts/:id (auth required)",
+                delete: "DELETE /workouts/:id (auth required)",
                 complete: "POST /workouts/:id/complete (auth required)",
-                addExercise: "POST /workouts/:id/exercises (auth required)"
+                addExercise: "POST /workouts/:id/exercises (auth required)",
+                deleteExercise: "DELETE /workouts/:id/exercises/:exerciseId (auth required)"
             },
             schedules: {
                 list: "GET /schedules (auth required)",
                 byId: "GET /schedules/:id (auth required)",
                 create: "POST /schedules (auth required)",
+                delete: "DELETE /schedules/:id (auth required)",
+                deleteMultiple: "DELETE /schedules?filters&confirmation=true (auth required)",
                 complete: "POST /schedules/:id/complete (auth required)"
             }
         }
